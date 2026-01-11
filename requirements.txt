@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+httpx
+python-dotenv
+paho-mqtt
+supabase
+pydantic
+dotenv
+sqlalchemy
+asyncpg
+jinja2
