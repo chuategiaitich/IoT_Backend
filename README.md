@@ -22,7 +22,7 @@ Các thiết bị IoT (ESP32, Arduino, v.v.) sẽ giao tiếp qua giao thức **
 ### 1. Gửi dữ liệu cảm biến (Publish)
 Thiết bị cần gửi dữ liệu định kỳ tới topic sau:
 - **Topic**: `iot/devices/{device_id}/data`
-### Ví dụ publish topic: `iot/devices/499250b5-99b9-438e-84ba-e0517fa2f3f8/data`
+Ví dụ publish topic: `iot/devices/499250b5-99b9-438e-84ba-e0517fa2f3f8/data`
 - **Payload (JSON)**:
 ```json
 {
@@ -34,7 +34,7 @@ Thiết bị cần gửi dữ liệu định kỳ tới topic sau:
 ### 2. Nhận lệnh điều khiển (Subscribe)
 Thiết bị cần lắng nghe (subscribe) topic sau để nhận lệnh từ người dùng:
 - **Topic**: `iot/devices/{device_id}/command`
-### Ví dụ subscribe topic: `iot/devices/499250b5-99b9-438e-84ba-e0517fa2f3f8/command`
+Ví dụ subscribe topic: `iot/devices/499250b5-99b9-438e-84ba-e0517fa2f3f8/command`
 - **Payload (JSON)**:
 ```json
 {
