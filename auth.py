@@ -12,17 +12,13 @@ from pydantic import BaseModel
 
 # =================== CẤU HÌNH ===================
 
-# Thay đổi SECRET_KEY này thành một chuỗi bí mật mạnh, dài và random (tốt nhất lưu trong .env)
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # Thời gian sống của token (có thể tăng lên 1440 phút = 1 ngày)
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-
-# =================== SCHEMAS ===================
 
 class Token(BaseModel):
     access_token: str
@@ -30,19 +26,14 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    id: str  # user id (UUID string)
+    id: str
     email: str
 
-
-# =================== HÀM HỖ TRỢ ===================
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Kiểm tra password người dùng nhập có khớp với hash lưu trong DB không"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Hash password trước khi lưu vào database"""
     return pwd_context.hash(password)
 
 
@@ -63,7 +54,6 @@ def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Session = Depends(get_db)
 ) -> User:
-    """Dependency: Lấy thông tin user hiện tại từ JWT token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Không thể xác thực thông tin đăng nhập",
@@ -89,14 +79,10 @@ def get_current_user(
 def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:
-    """Dependency nâng cao: Đảm bảo user đang active (nếu bạn có trường is_active)"""
-    # Nếu bạn thêm trường is_active vào User thì có thể check ở đây
+
     # if not current_user.is_active:
     #     raise HTTPException(status_code=400, detail="Tài khoản bị vô hiệu hóa")
     return current_user
-
-
-# =================== HÀM ĐĂNG NHẬP ===================
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     """Kiểm tra email + password, trả về user nếu đúng"""

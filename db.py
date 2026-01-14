@@ -9,16 +9,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Cấu hình kết nối PostgreSQL local
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Tạo engine
-engine = create_engine(DATABASE_URL, echo=False)  # echo=True nếu muốn debug SQL
+engine = create_engine(DATABASE_URL, echo=False)
 
-# Tạo session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class cho tất cả các model
 Base = declarative_base()
 
 
@@ -34,7 +30,6 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Quan hệ (nếu cần)
     devices = relationship("Device", back_populates="user")
     commands = relationship("Command", back_populates="performer")
     schedules = relationship("Schedule", back_populates="performer")
@@ -47,11 +42,10 @@ class Device(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
     type = Column(String, default="feeder")
-    status = Column(String, default="offline")  # online / offline
+    status = Column(String, default="offline")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Quan hệ
     user = relationship("User", back_populates="devices")
     sensor_data = relationship("SensorData", back_populates="device")
     commands = relationship("Command", back_populates="device")
@@ -63,13 +57,12 @@ class SensorData(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
-    type = Column(String, nullable=False)  # weight, temperature, ...
+    type = Column(String, nullable=False)
     value_number = Column(Numeric, nullable=True)
     value_string = Column(Text, nullable=True)
     unit = Column(String, nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Quan hệ
     device = relationship("Device", back_populates="sensor_data")
 
 
@@ -85,7 +78,6 @@ class Command(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     executed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Quan hệ
     device = relationship("Device", back_populates="commands")
     performer = relationship("User", back_populates="commands")
 
@@ -103,7 +95,6 @@ class Schedule(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Quan hệ
     device = relationship("Device", back_populates="schedules")
     performer = relationship("User", back_populates="schedules")
 
@@ -116,7 +107,7 @@ class History(Base):
     performer_id = Column(UUID(as_uuid=True),ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     event_type = Column(String, nullable=False)
     description = Column(Text, nullable=False)
-    related_id = Column(UUID(as_uuid=True), nullable=True)  # id của command/schedule/...
+    related_id = Column(UUID(as_uuid=True), nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -131,7 +122,6 @@ class Alert(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
 
-# Hàm lấy database session (dùng cho FastAPI dependency)
 def get_db():
     db = SessionLocal()
     try:
@@ -139,13 +129,11 @@ def get_db():
     finally:
         db.close()
 
-
-# Tạo tất cả các bảng (chỉ dùng khi cần khởi tạo lần đầu)
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
 
 if __name__ == "__main__":
     print("Initial PostgreSQL Database ...")
-    # create_tables()  # Uncomment nếu muốn tạo bảng tự động khi chạy file
+    # create_tables()
     print("Done. Database now ready.")

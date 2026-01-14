@@ -16,13 +16,11 @@ from bridge import broadcast_worker
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle events"""
-    # Startup
+
     print("Starting up...")
     from db import create_tables
     create_tables()
 
-    # Khởi tạo bridge worker
     loop = asyncio.get_running_loop()
     mqtt_handler.loop = loop
     asyncio.create_task(broadcast_worker())
@@ -32,19 +30,14 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown
     print("Shutting down...")
     mqtt_handler.disconnect()
     print("Application shutdown complete!")
 
 def get_database_schema(db) -> Dict[str, List[Dict]]:
-    """
-    Lấy thông tin schema từ SQLAlchemy metadata và inspect database
-    Trả về dict dạng: {table_name: [column_info, ...]}
-    """
+
     schema_info = {}
 
-    # 1. Lấy từ SQLAlchemy models (metadata)
     for table_name, table in Base.metadata.tables.items():
         columns = []
         for column in table.columns:
@@ -59,16 +52,12 @@ def get_database_schema(db) -> Dict[str, List[Dict]]:
             columns.append(col_info)
         schema_info[table_name] = columns
 
-    # 2. (Tùy chọn) Inspect thực tế database để lấy thêm constraint, index...
-    # Cần dùng sync connection vì inspect thường dùng với sync engine
     inspector = inspect(engine)
 
     for table_name in inspector.get_table_names():
         if table_name not in schema_info:
-            # Trường hợp bảng tồn tại trong DB nhưng không có trong models
             schema_info[table_name] = [{"name": "—", "type": "— (không trong model)", "note": "Bảng tồn tại trong DB nhưng không khai báo trong SQLAlchemy"}]
 
-        # Thêm foreign keys từ inspector (đôi khi metadata không đủ)
         fks = inspector.get_foreign_keys(table_name)
         for fk in fks:
             for col in schema_info[table_name]:
@@ -77,7 +66,6 @@ def get_database_schema(db) -> Dict[str, List[Dict]]:
 
     return schema_info
 
-# Khởi tạo FastAPI app
 app = FastAPI(
     title="IoT Backend API",
     description="Backend API for IoT devices with MQTT integration",
@@ -91,13 +79,12 @@ env = Environment(loader=FileSystemLoader("templates"))
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Trong production nên chỉ định cụ thể
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API routes
 # app.include_router(router, prefix="/api", tags=["API"])
 app.include_router(router)
 
@@ -169,16 +156,11 @@ def dashboard():
 
 @app.get("/docs/table", response_class=HTMLResponse)
 async def database_table_docs():
-    """
-    Hiển thị schema database dưới dạng HTML đẹp
-    Không cần db session vì dùng metadata + inspector
-    """
     try:
-        schema = get_database_schema(None)  # truyền None vì dùng engine sync
+        schema = get_database_schema(None)
     except Exception as e:
         return f"<h1>Lỗi khi lấy schema</h1><pre>{str(e)}</pre>"
 
-    # Tạo HTML
     html = """
     <!DOCTYPE html>
     <html lang="vi">

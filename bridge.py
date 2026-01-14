@@ -5,7 +5,6 @@ from websocket_manager import manager
 data_queue = asyncio.Queue()
 
 async def broadcast_worker():
-    """Background task to broadcast data from the queue to WebSockets"""
     while True:
         data = await data_queue.get()
         if data is None:

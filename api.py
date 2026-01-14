@@ -226,7 +226,6 @@ def get_users(db: Session = Depends(get_db)):
 def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    """Lấy thông tin người dùng đang đăng nhập"""
     return current_user
 
 @router.post("/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
@@ -234,7 +233,6 @@ def register(
     user: UserCreate,
     db: Session = Depends(get_db)
 ):
-    """Đăng ký người dùng mới"""
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(
             status_code=400,
@@ -252,7 +250,6 @@ def register(
     db.commit()
     db.refresh(db_user)
 
-    # Log history
     db_history = History(
         performer_id=db_user.id,
         event_type="USER_REGISTER",
@@ -269,7 +266,6 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    """Đăng nhập và nhận JWT token"""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -394,7 +390,6 @@ def create_command(command: CommandCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_command)
 
-    # Log history
     db_history = History(
         device_id=db_command.device_id,
         performer_id=db_command.performer_id,
@@ -463,7 +458,6 @@ def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_schedule)
 
-    # Log history
     db_history = History(
         device_id=db_schedule.device_id,
         performer_id=db_schedule.performer_id,

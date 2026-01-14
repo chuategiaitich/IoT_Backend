@@ -21,7 +21,6 @@ MQTT_PORT = os.getenv("MQTT_PORT")
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
-# Topic patterns
 TOPIC_DATA = "iot/devices/+/data"
 TOPIC_COMMAND = "iot/devices/{}/command"
 
@@ -30,8 +29,7 @@ from bridge import data_queue
 class MQTTHandler:
     def __init__(self):
         self.loop = None
-        # Tạo Client ID duy nhất để tránh xung đột
-        unique_id = uuid.uuid4().hex[:6]
+        unique_id = uuid.uuid4().hex[:6] #unique Backend ID
         client_id = f"fastapi_backend_{unique_id}"
         self.client = mqtt.Client(client_id=client_id, clean_session=True)
         self.client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
@@ -40,7 +38,6 @@ class MQTTHandler:
         self.client.on_disconnect = self.on_disconnect
 
     def connect(self):
-        """Khởi tạo và kết nối tới MQTT Broker"""
         try:
             self.client.tls_set(tls_version=ssl.PROTOCOL_TLS)
             self.client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
@@ -50,7 +47,6 @@ class MQTTHandler:
             logger.error(f"Failed to connect to MQTT: {e}")
     
     def disconnect(self):
-        """Ngắt kết nối MQTT một cách chủ động"""
         try:
             self.client.loop_stop()
             self.client.disconnect()
@@ -61,7 +57,6 @@ class MQTTHandler:
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             logger.info("Kết nối MQTT thành công!")
-            # Chỉ subscribe topic data
             client.subscribe(TOPIC_DATA, qos=1)
             logger.info(f"Đã subscribe topic: {TOPIC_DATA}")
         else:
@@ -90,7 +85,6 @@ class MQTTHandler:
             logger.error(f"Lỗi xử lý message: {e}", exc_info=True)
 
     def handle_sensor_data(self, topic: str, data: dict):
-        """Xử lý dữ liệu cảm biến: dùng device primary ID (UUID) từ topic"""
         try:
             # Topic format: iot/devices/<device_id>/data
             parts = topic.split('/')
@@ -102,13 +96,11 @@ class MQTTHandler:
 
         db = SessionLocal()
         try:
-            # Tìm device bằng primary ID (UUID)
             device = db.get(Device, device_uuid)
             if not device:
                 logger.warning(f"Không tìm thấy device với ID: {device_uuid}")
                 return
 
-            # Cập nhật status device
             device.status = "online"
             device.updated_at = datetime.utcnow()
 
@@ -116,25 +108,21 @@ class MQTTHandler:
             inserted_count = 0
 
             for sensor_type, value in data.items():
-                # Chuẩn hóa giá trị
                 value_number = float(value) if isinstance(value, (int, float)) else None
                 value_string = str(value) if value_number is None else None
 
-                # Tìm record hiện có cho type này
                 sensor = db.query(SensorData).filter(
                     SensorData.device_id == device.id,
                     SensorData.type == sensor_type
                 ).first()
 
                 if sensor:
-                    # UPDATE giá trị mới nhất
                     sensor.value_number = value_number
                     sensor.value_string = value_string
-                    sensor.unit = None  # cập nhật nếu cần
+                    sensor.unit = None
                     sensor.timestamp = datetime.utcnow()
                     updated_count += 1
                 else:
-                    # INSERT mới nếu chưa có
                     new_sensor = SensorData(
                         device_id=device.id,
                         type=sensor_type,
@@ -149,7 +137,6 @@ class MQTTHandler:
             db.commit()
             logger.info(f"Đã cập nhật sensor data cho device {device_id_str}")
 
-            # Gửi dữ liệu qua WebSocket bridge
             if self.loop:
                 broadcast_data = {
                     "device_id": device_id_str,
@@ -174,5 +161,4 @@ class MQTTHandler:
         else:
             logger.error(f"Lỗi khi publish command tới {topic}: rc={result.rc}")
 
-# Instance toàn cục
 mqtt_handler = MQTTHandler()
