@@ -1,0 +1,46 @@
+graph TD
+    Main["main.py (App Manager)"]
+    
+    %% Main Branches
+    Main --> API["api.py (REST & WS)"]
+    Main --> MQTTHandler["mqtt.py (MQTT Logic)"]
+    Main --> LifeSpan["Lifespan/Startup"]
+    
+    %% Lifespan Logic
+    LifeSpan --> DBInit["db.py (Table Creation)"]
+    LifeSpan --> BroadcastWorker["bridge.py (Broadcast Worker)"]
+    LifeSpan --> MConnect["mqtt.connect()"]
+
+    %% API Branch
+    subgraph "API (api.py)"
+        API --> Auth["auth.py (JWT Security)"]
+        API --> UsersAPI["Users API"]
+        API --> DevicesAPI["Devices API"]
+        API --> CommandsAPI["Commands API"]
+        API --> WS["WebSocket (/ws/sensor_data)"]
+        
+        UsersAPI --> Login["Login / Register"]
+        UsersAPI --> Profile["Get/Update Me"]
+        
+        CommandsAPI --> PubCmd["mqtt_handler.publish_command()"]
+    end
+
+    %% MQTT Branch
+    subgraph "MQTT (mqtt.py)"
+        MQTTHandler --> OnConnect["On Connect (Subscribe /data)"]
+        MQTTHandler --> OnMessage["On Message (Handle Data)"]
+        OnMessage --> UpdateDB["Update Database (db.py)"]
+        OnMessage --> PushQueue["Push to bridge.data_queue"]
+    end
+
+    %% WebSocket Manager logic
+    subgraph "WebSocket Bridge (bridge.py)"
+        PushQueue --> Broadcast["manager.broadcast()"]
+        Broadcast --> WSManager["websocket_manager.py"]
+        WSManager --> Frontend["Frontend Clients"]
+    end
+
+    %% Data flow connections
+    PubCmd -.-> Devices["Hardware Devices"]
+    Devices -.-> OnMessage
+    Frontend -- "Invoke API" --> API
